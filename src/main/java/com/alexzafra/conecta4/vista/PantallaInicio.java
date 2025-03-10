@@ -1,6 +1,5 @@
 package com.alexzafra.conecta4.vista;
 
-import com.alexzafra.conecta4.vista.dialogos.DialogoOpciones;
 import com.alexzafra.conecta4.vista.dialogos.DialogoCreditos;
 import com.alexzafra.conecta4.vista.dialogos.DialogoOpcionesAvanzadas;
 import com.alexzafra.conecta4.vista.componentes.ReproductorMusica;
@@ -17,12 +16,12 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Screen;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
@@ -322,13 +321,35 @@ public class PantallaInicio extends BorderPane {
 
         // Solo aplicar cambios de resolución si el diálogo no fue cancelado
         if (ventanaPrincipal.isModoSeleccionado()) {
-            // Establecer pantalla completa si es necesario
-            if (pantallaCompleta != primaryStage.isFullScreen()) {
-                primaryStage.setFullScreen(pantallaCompleta);
-            }
+            // Aplicar la configuración de ventana
+            boolean modoSinBordes = config.isModoSinBordes();
 
-            // Si no está en pantalla completa, establecer dimensiones específicas
-            if (!pantallaCompleta) {
+            if (pantallaCompleta) {
+                // Modo pantalla completa
+                if (!primaryStage.isFullScreen()) {
+                    primaryStage.setFullScreen(true);
+                }
+            } else {
+                // Si estaba en pantalla completa, salir del modo
+                if (primaryStage.isFullScreen()) {
+                    primaryStage.setFullScreen(false);
+                }
+
+                // Aplicar el estilo de ventana (con o sin bordes)
+                if (modoSinBordes) {
+                    // Aplicar estilo sin bordes
+                    primaryStage.initStyle(StageStyle.UNDECORATED);
+                } else {
+                    // Estilo normal con bordes (decorado)
+                    try {
+                        primaryStage.initStyle(StageStyle.DECORATED);
+                    } catch (Exception e) {
+                        // Si hay error al cambiar el estilo, ignoramos ya que puede que ya tenga este estilo
+                        System.err.println("Advertencia al cambiar estilo de ventana: " + e.getMessage());
+                    }
+                }
+
+                // Establecer dimensiones específicas
                 primaryStage.setWidth(resolucion.getWidth());
                 primaryStage.setHeight(resolucion.getHeight());
 

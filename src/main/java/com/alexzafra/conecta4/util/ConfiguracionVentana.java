@@ -12,12 +12,14 @@ public class ConfiguracionVentana {
     // Configuraciones por defecto
     private Dimension2D resolucionActual;
     private boolean pantallaCompleta;
+    private boolean modoSinBordes;
 
     // Constructor privado
     private ConfiguracionVentana() {
         // Resolución por defecto
         resolucionActual = ResolucionesJuego.RES_1024x768;
         pantallaCompleta = false;
+        modoSinBordes = false;
     }
 
     // Método para obtener la instancia única
@@ -50,6 +52,10 @@ public class ConfiguracionVentana {
      */
     public void setPantallaCompleta(boolean pantallaCompleta) {
         this.pantallaCompleta = pantallaCompleta;
+        // Si activamos pantalla completa, desactivamos el modo sin bordes
+        if (pantallaCompleta) {
+            this.modoSinBordes = false;
+        }
     }
 
     /**
@@ -58,5 +64,25 @@ public class ConfiguracionVentana {
      */
     public boolean isPantallaCompleta() {
         return pantallaCompleta;
+    }
+
+    /**
+     * Establece el modo sin bordes
+     * @param modoSinBordes Nuevo estado de modo sin bordes
+     */
+    public void setModoSinBordes(boolean modoSinBordes) {
+        this.modoSinBordes = modoSinBordes;
+        // Si activamos modo sin bordes, desactivamos pantalla completa
+        if (modoSinBordes) {
+            this.pantallaCompleta = false;
+        }
+    }
+
+    /**
+     * Verifica si está en modo sin bordes
+     * @return true si está en modo sin bordes, false en caso contrario
+     */
+    public boolean isModoSinBordes() {
+        return modoSinBordes;
     }
 }

@@ -156,8 +156,20 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
         lblModoVentana.setTextFill(Color.WHITE);
 
         comboModoVentana = new ComboBox<>();
-        comboModoVentana.getItems().addAll("Ventana", "Pantalla completa");
-        comboModoVentana.setValue(ownerStage.isFullScreen() ? "Pantalla completa" : "Ventana");
+        comboModoVentana.getItems().addAll("Ventana", "Ventana sin bordes", "Pantalla completa");
+
+        // Determinar el modo actual
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        String modoActual;
+        if (ownerStage.isFullScreen()) {
+            modoActual = "Pantalla completa";
+        } else if (config.isModoSinBordes()) {
+            modoActual = "Ventana sin bordes";
+        } else {
+            modoActual = "Ventana";
+        }
+
+        comboModoVentana.setValue(modoActual);
         comboModoVentana.setPrefWidth(200);
 
         // Añadir listener para habilitar/deshabilitar comboResolucion

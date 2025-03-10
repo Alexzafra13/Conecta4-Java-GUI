@@ -20,6 +20,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import com.alexzafra.conecta4.vista.componentes.BarraArrastre;
 
 import java.util.Optional;
 
@@ -37,6 +40,7 @@ public class VentanaPrincipal extends BorderPane {
     private BarraEstado barraEstado;
     private ReproductorMusica reproductorMusica;
     private boolean modoSeleccionado = false;
+    private BarraArrastre barraArrastre;
 
     // Variable para pausar entre movimientos de la máquina
     private PauseTransition pausaMovimientoMaquina;
@@ -64,6 +68,11 @@ public class VentanaPrincipal extends BorderPane {
 
         // Configurar escuchadores para redimensionamiento
         configurarEscuchadoresRedimension();
+
+        // Inicializar barra de arrastre si es necesario
+        Platform.runLater(() -> {
+            actualizarBarraArrastre();
+        });
     }
 
     /**
@@ -423,6 +432,56 @@ public class VentanaPrincipal extends BorderPane {
         // Actualizar interfaz
         panelTablero.refrescarTablero();
         actualizarEstadoJuego();
+    }
+
+    /**
+     * Actualiza la interfaz para mostrar/ocultar la barra de arrastre según el modo de ventana
+     */
+    public void actualizarBarraArrastre() {
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        Stage ventana = (Stage) getScene().getWindow();
+
+        if (config.isModoSinBordes() && !config.isPantallaCompleta()) {
+            // Si no existe la barra de arrastre, crearla
+            if (barraArrastre == null) {
+                barraArrastre = new BarraArrastre(ventana, "Conecta 4");
+            }
+
+            // Verificar si ya está en el layout
+            if (!getChildren().contains(barraArrastre)) {
+                // Remover el contenido actual del top (panel de puntuaciones)
+                Object topContent = getTop();
+
+                // Crear un VBox para contener la barra de arrastre y el panel de puntuaciones
+                VBox panelSuperior = new VBox();
+                panelSuperior.getChildren().add(barraArrastre);
+
+                if (topContent != null) {
+                    panelSuperior.getChildren().add((Node)topContent);
+                }
+
+                // Establecer el nuevo panel superior
+                setTop(panelSuperior);
+            }
+        } else {
+            // Si existe la barra de arrastre y está visible, eliminarla
+            if (barraArrastre != null) {
+                // Recuperar el panel superior actual
+                if (getTop() instanceof VBox) {
+                    VBox panelSuperior = (VBox) getTop();
+                    ObservableList<Node> hijos = panelSuperior.getChildren();
+
+                    // Si hay más de un hijo (barra de arrastre + panel de puntuaciones)
+                    if (hijos.size() > 1) {
+                        // Recuperar el panel de puntuaciones
+                        Node puntuaciones = hijos.get(1);
+
+                        // Establecer solo el panel de puntuaciones como top
+                        setTop(puntuaciones);
+                    }
+                }
+            }
+        }
     }
 
 

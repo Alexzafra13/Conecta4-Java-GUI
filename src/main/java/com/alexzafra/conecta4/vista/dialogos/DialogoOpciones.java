@@ -28,6 +28,7 @@ public class DialogoOpciones extends Stage {
     private Dimension2D resolucionSeleccionada;
     private boolean cambioAceptado = false;
     private boolean modoCompleta = false;
+    private boolean modoSinBordes = false;
 
     // Componentes de la interfaz
     private ComboBox<String> comboResolucion;
@@ -96,11 +97,19 @@ public class DialogoOpciones extends Stage {
         lblModoVentana.setStyle("-fx-text-fill: white;");
 
         comboModoVentana = new ComboBox<>();
-        comboModoVentana.getItems().addAll("Ventana", "Pantalla Completa");
+        comboModoVentana.getItems().addAll("Ventana", "Ventana sin bordes", "Pantalla Completa");
 
         // Establecer el modo actual
         ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
-        comboModoVentana.setValue(config.isPantallaCompleta() ? "Pantalla Completa" : "Ventana");
+        String modoActual;
+        if (config.isPantallaCompleta()) {
+            modoActual = "Pantalla Completa";
+        } else if (config.isModoSinBordes()) {
+            modoActual = "Ventana sin bordes";
+        } else {
+            modoActual = "Ventana";
+        }
+        comboModoVentana.setValue(modoActual);
         comboModoVentana.setPrefWidth(200);
 
         // Añadir listener para desactivar el selector de resolución en modo pantalla completa
@@ -129,12 +138,15 @@ public class DialogoOpciones extends Stage {
                 resolucionSeleccionada = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionadaTexto);
 
                 // Guardar modo de ventana
-                modoCompleta = "Pantalla Completa".equals(comboModoVentana.getValue());
+                String modoSeleccionado = comboModoVentana.getValue();
+                modoCompleta = "Pantalla Completa".equals(modoSeleccionado);
+                modoSinBordes = "Ventana sin bordes".equals(modoSeleccionado);
 
                 // Actualizar configuración global
                 ConfiguracionVentana configVentana = ConfiguracionVentana.getInstancia();
                 configVentana.setResolucion(resolucionSeleccionada);
                 configVentana.setPantallaCompleta(modoCompleta);
+                configVentana.setModoSinBordes(modoSinBordes);
 
                 cambioAceptado = true;
                 close();
@@ -192,6 +204,14 @@ public class DialogoOpciones extends Stage {
      */
     public boolean isPantallaCompletaSeleccionada() {
         return modoCompleta;
+    }
+
+    /**
+     * Obtiene el modo sin bordes seleccionado
+     * @return true si se seleccionó modo sin bordes, false en caso contrario
+     */
+    public boolean isModoSinBordesSeleccionado() {
+        return modoSinBordes;
     }
 
     /**
