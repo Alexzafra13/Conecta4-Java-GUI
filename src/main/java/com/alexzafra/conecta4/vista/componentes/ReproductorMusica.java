@@ -29,6 +29,8 @@ public class ReproductorMusica extends VBox implements SistemaAudio.CambioMusica
     private List<String> canciones;
     private List<String> nombresLimpios;
     private boolean modoMinimalista;
+    // Agregar a los atributos de clase en ReproductorMusica.java
+    private Button btnAleatorio;
 
     // Timer para actualizar la interfaz periódicamente
     private PauseTransition actualizadorUI;
@@ -182,6 +184,18 @@ public class ReproductorMusica extends VBox implements SistemaAudio.CambioMusica
             }
         });
 
+        btnAleatorio = new Button("🔀");
+        btnAleatorio.getStyleClass().add("boton-musica-mini");
+        btnAleatorio.setOnAction(e -> {
+            try {
+                SistemaAudio.getInstancia().reproducirEfecto("boton");
+                SistemaAudio.getInstancia().reproducirMusicaAleatoria();
+                actualizarEstadoBotones(true);
+            } catch (Exception ex) {
+                System.err.println("Error al reproducir música aleatoria: " + ex.getMessage());
+            }
+        });
+
         // Selector de canción compacto
         comboMusica = new ComboBox<>();
         comboMusica.getItems().addAll(nombresLimpios);
@@ -206,7 +220,7 @@ public class ReproductorMusica extends VBox implements SistemaAudio.CambioMusica
             }
         });
 
-        panelSuperior.getChildren().addAll(btnReproducir, btnPausar, btnSiguiente, comboMusica);
+        panelSuperior.getChildren().addAll(btnReproducir, btnPausar, btnSiguiente, btnAleatorio, comboMusica);
 
         // Control de volumen
         sliderVolumen = new Slider(0, 1, 0.5);
@@ -300,7 +314,28 @@ public class ReproductorMusica extends VBox implements SistemaAudio.CambioMusica
             }
         });
 
-        panelBotones.getChildren().addAll(btnReproducir, btnPausar, btnSiguiente);
+        btnAleatorio = new Button("🔀 Aleatorio");
+        btnAleatorio.getStyleClass().add("boton-musica");
+        btnAleatorio.setOnAction(e -> {
+            try {
+                SistemaAudio.getInstancia().reproducirEfecto("boton");
+                SistemaAudio.getInstancia().reproducirMusicaAleatoria();
+                actualizarEstadoBotones(true);
+            } catch (Exception ex) {
+                System.err.println("Error al reproducir música aleatoria: " + ex.getMessage());
+            }
+        });
+
+        // Crear un panel para los primeros botones y otro para los segundos
+        // para mejor distribución en caso de espacio limitado
+        HBox panelBotones1 = new HBox(10, btnReproducir, btnPausar);
+        HBox panelBotones2 = new HBox(10, btnSiguiente, btnAleatorio);
+
+        panelBotones1.setAlignment(Pos.CENTER);
+        panelBotones2.setAlignment(Pos.CENTER);
+
+        VBox panelBotonesVertical = new VBox(5, panelBotones1, panelBotones2);
+        panelBotonesVertical.setAlignment(Pos.CENTER);
 
         // Control de volumen
         Label lblVolumen = new Label("Volumen:");
@@ -323,7 +358,7 @@ public class ReproductorMusica extends VBox implements SistemaAudio.CambioMusica
                 lblTitulo,
                 lblCancion,
                 comboMusica,
-                panelBotones,
+                panelBotonesVertical,
                 lblVolumen,
                 sliderVolumen
         );

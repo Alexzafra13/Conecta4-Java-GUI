@@ -426,4 +426,34 @@ public class SistemaAudio {
     public Map<String, String> getNombresCancionesLimpios() {
         return new HashMap<>(nombresCancionesLimpios);
     }
+
+    /**
+     * Selecciona y reproduce una canción aleatoria de la lista de canciones disponibles
+     */
+    public void reproducirMusicaAleatoria() {
+        if (pistasMusicales.isEmpty()) {
+            System.err.println("No hay pistas musicales disponibles para reproducir");
+            return;
+        }
+
+        // Obtener una canción aleatoria
+        Random random = new Random();
+        int indiceAleatorio = random.nextInt(pistasMusicales.size());
+        String cancionAleatoria = pistasMusicales.get(indiceAleatorio);
+
+        System.out.println("Reproduciendo música aleatoria: " +
+                nombresCancionesLimpios.getOrDefault(cancionAleatoria, cancionAleatoria));
+
+        // Cargar y reproducir la canción seleccionada
+        cambiarMusica(cancionAleatoria);
+    }
+
+    /**
+     * Verifica si la canción actual coincide con la especificada
+     * @param rutaCancion Ruta de la canción a verificar
+     * @return true si es la canción actual, false en caso contrario
+     */
+    public boolean esCancionActual(String rutaCancion) {
+        return cancionActual != null && cancionActual.equals(rutaCancion);
+    }
 }

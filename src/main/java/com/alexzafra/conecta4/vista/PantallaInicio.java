@@ -50,11 +50,17 @@ public class PantallaInicio extends BorderPane {
         setPadding(new Insets(20));
         setStyle("-fx-background-color: linear-gradient(to bottom, #192044, #28284A);");
 
-        // Iniciar música de fondo
+        // Iniciar música de fondo con una canción aleatoria
         try {
-            SistemaAudio.getInstancia().reproducirMusica();
+            SistemaAudio.getInstancia().reproducirMusicaAleatoria();
         } catch (Exception e) {
-            System.err.println("Error al reproducir música: " + e.getMessage());
+            System.err.println("Error al reproducir música aleatoria: " + e.getMessage());
+            // Intentar reproducir música normal como fallback
+            try {
+                SistemaAudio.getInstancia().reproducirMusica();
+            } catch (Exception ex) {
+                System.err.println("Error al reproducir música: " + ex.getMessage());
+            }
         }
 
         // Inicializar componentes
@@ -288,6 +294,11 @@ public class PantallaInicio extends BorderPane {
      * Inicia una nueva partida
      */
     private void iniciarNuevaPartida() {
+
+        // Añadir al inicio del método iniciarNuevaPartida()
+       // Guardar la canción actual para mantenerla en la transición
+        String cancionActual = SistemaAudio.getInstancia().getRutaCancionActual();
+
         // Obtener la configuración de ventana
         ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
         Dimension2D resolucion = config.getResolucion();
