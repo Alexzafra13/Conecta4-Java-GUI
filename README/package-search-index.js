@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.alexzafra.conecta4"},{"l":"com.alexzafra.conecta4.controller"},{"l":"com.alexzafra.conecta4.interfazUI"},{"l":"com.alexzafra.conecta4.interfazUI.componentes"},{"l":"com.alexzafra.conecta4.modelos"}];updateSearchResults();
