@@ -13,10 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.util.Duration;
 
 import java.util.Optional;
@@ -104,9 +101,14 @@ public class VentanaPrincipal extends BorderPane {
             barraEstado.establecerMensajeEstado(controlador.getMensajeEstado());
         });
 
+        // Crear un contenedor que centrará el tablero
+        StackPane contenedorTablero = new StackPane();
+        contenedorTablero.getChildren().add(panelTablero);
+        contenedorTablero.setPadding(new Insets(10));
+
         // Agregar componentes al panel principal
         setTop(panelSuperior);
-        setCenter(panelTablero);
+        setCenter(contenedorTablero); // Usar el contenedor en lugar del tablero directamente
         setBottom(panelSur);
     }
 

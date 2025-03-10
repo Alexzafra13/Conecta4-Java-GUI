@@ -114,8 +114,13 @@ public class TableroView extends Pane {
             canvas.setHeight(altoCanvas);
 
             // Establecer el tamaño preferido del panel
-            setPrefWidth(anchoCanvas);
-            setPrefHeight(altoCanvas);
+            setPrefWidth(anchoVentana);  // Usar todo el ancho disponible
+            setPrefHeight(altoDisponible);
+
+            // Centrar el canvas dentro del panel
+            double xPos = (anchoVentana - anchoCanvas) / 2;
+            canvas.setLayoutX(xPos > 0 ? xPos : 0);
+            canvas.setLayoutY(0); // Al inicio verticalmente
 
             // Redibujar el tablero con los nuevos tamaños
             dibujarTablero();
