@@ -7,8 +7,10 @@ import com.alexzafra.conecta4.vista.componentes.ReproductorMusica;
 import com.alexzafra.conecta4.util.SistemaAudio;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
@@ -20,9 +22,11 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Screen;
 import javafx.util.Duration;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 
 /**
  * Pantalla inicial del juego con menú principal
@@ -285,11 +289,18 @@ public class PantallaInicio extends BorderPane {
      * Inicia una nueva partida
      */
     private void iniciarNuevaPartida() {
+        // Obtener la configuración de ventana
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        Dimension2D resolucion = config.getResolucion();
+        boolean pantallaCompleta = config.isPantallaCompleta();
+
         // Crear ventana principal del juego
         VentanaPrincipal ventanaPrincipal = new VentanaPrincipal();
 
-        // Crear escena y mostrarla
-        Scene scene = new Scene(ventanaPrincipal, primaryStage.getWidth(), primaryStage.getHeight());
+        // Crear escena con las dimensiones de la configuración
+        Scene scene = new Scene(ventanaPrincipal,
+                resolucion.getWidth(),
+                resolucion.getHeight());
 
         // Aplicar estilos CSS
         try {
@@ -298,24 +309,41 @@ public class PantallaInicio extends BorderPane {
             System.err.println("Error al cargar CSS: " + e.getMessage());
         }
 
+        // Guardar el estado actual de la ventana para poder restaurarlo si se cancela
+        double oldWidth = primaryStage.getWidth();
+        double oldHeight = primaryStage.getHeight();
+        boolean oldFullscreen = primaryStage.isFullScreen();
+
+        // Cambiar la escena sin aplicar resolución aún
         primaryStage.setScene(scene);
+
+        // Mostrar diálogo de modo de juego
         ventanaPrincipal.mostrarDialogoModo();
 
-        // Provocar un reajuste del tamaño del tablero después de que la escena esté activa
-        Platform.runLater(() -> {
-            // Forzar un ligero cambio de tamaño para activar el listener de redimensionamiento
-            double anchoActual = primaryStage.getWidth();
-            double altoActual = primaryStage.getHeight();
-
-            if (anchoActual > 0 && altoActual > 0) {
-                // Esto provocará que se ejecute el listener de cambio de tamaño
-                // que ajustará el tablero adecuadamente
-                if (ventanaPrincipal.getScene() != null) {
-                    ventanaPrincipal.getScene().getWindow().setWidth(anchoActual + 1);
-                    ventanaPrincipal.getScene().getWindow().setWidth(anchoActual);
-                }
+        // Solo aplicar cambios de resolución si el diálogo no fue cancelado
+        if (ventanaPrincipal.isModoSeleccionado()) {
+            // Establecer pantalla completa si es necesario
+            if (pantallaCompleta != primaryStage.isFullScreen()) {
+                primaryStage.setFullScreen(pantallaCompleta);
             }
-        });
+
+            // Si no está en pantalla completa, establecer dimensiones específicas
+            if (!pantallaCompleta) {
+                primaryStage.setWidth(resolucion.getWidth());
+                primaryStage.setHeight(resolucion.getHeight());
+
+                // Centrar la ventana en la pantalla
+                Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+                primaryStage.setX((screenBounds.getWidth() - resolucion.getWidth()) / 2);
+                primaryStage.setY((screenBounds.getHeight() - resolucion.getHeight()) / 2);
+            }
+
+            // Provocar un reajuste del tamaño del tablero después de que la escena esté activa
+            Platform.runLater(() -> {
+                // Forzar ajuste de tamaño del tablero
+                ventanaPrincipal.ajustarTamañoTablero();
+            });
+        }
     }
 
     /**

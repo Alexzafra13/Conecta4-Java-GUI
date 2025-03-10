@@ -28,10 +28,6 @@ public class Conecta4Main extends Application {
             if (!pantallaCompleta) {
                 primaryStage.setWidth(resolucion.getWidth());
                 primaryStage.setHeight(resolucion.getHeight());
-            } else {
-                // Si está en pantalla completa, usar un tamaño de ventana predeterminado
-                primaryStage.setWidth(1024);
-                primaryStage.setHeight(768);
             }
 
             primaryStage.setMinWidth(700);

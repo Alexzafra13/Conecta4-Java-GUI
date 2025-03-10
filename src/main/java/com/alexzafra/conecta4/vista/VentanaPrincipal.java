@@ -1,6 +1,7 @@
 package com.alexzafra.conecta4.vista;
 
 import com.alexzafra.conecta4.controller.ControladorJuego;
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 import com.alexzafra.conecta4.util.SistemaAudio;
 import com.alexzafra.conecta4.vista.componentes.BarraEstado;
 import com.alexzafra.conecta4.vista.componentes.PanelPuntuaciones;
@@ -12,12 +13,13 @@ import javafx.application.Platform;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.layout.*;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import com.alexzafra.conecta4.util.ConfiguracionVentana;
 
 import java.util.Optional;
 
@@ -34,6 +36,7 @@ public class VentanaPrincipal extends BorderPane {
     private PanelPuntuaciones panelPuntuaciones;
     private BarraEstado barraEstado;
     private ReproductorMusica reproductorMusica;
+    private boolean modoSeleccionado = false;
 
     // Variable para pausar entre movimientos de la máquina
     private PauseTransition pausaMovimientoMaquina;
@@ -44,6 +47,11 @@ public class VentanaPrincipal extends BorderPane {
     public VentanaPrincipal() {
         // Crear el controlador del juego
         controlador = new ControladorJuego();
+
+        // Obtener la configuración de ventana
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        Dimension2D resolucion = config.getResolucion();
+        boolean pantallaCompleta = config.isPantallaCompleta();
 
         // Configuración de estilos
         setStyle("-fx-background-color: #282850;");
@@ -147,7 +155,7 @@ public class VentanaPrincipal extends BorderPane {
     /**
      * Ajusta el tablero al tamaño disponible
      */
-    private void ajustarTamañoTablero() {
+    public void ajustarTamañoTablero() {
         if (panelTablero != null && getScene() != null) {
             try {
                 // Obtener la configuración guardada
@@ -155,12 +163,15 @@ public class VentanaPrincipal extends BorderPane {
                 Dimension2D resolucion = config.getResolucion();
                 boolean pantallaCompleta = config.isPantallaCompleta();
 
+                // Obtener la ventana actual
+                Stage ventana = (Stage) getScene().getWindow();
+
                 // Calcular espacio disponible
                 double anchoDisponible = pantallaCompleta ?
-                        getWidth() : resolucion.getWidth();
+                        ventana.getWidth() : resolucion.getWidth();
 
                 double altoDisponible = pantallaCompleta ?
-                        getHeight() : resolucion.getHeight() - 200;
+                        ventana.getHeight() : resolucion.getHeight() - 200;
 
                 if (anchoDisponible > 0 && altoDisponible > 0) {
                     // Ajustar el tamaño del tablero
@@ -276,23 +287,42 @@ public class VentanaPrincipal extends BorderPane {
 
             // Si se aceptaron los cambios, aplicar la nueva resolución
             if (resultado.isPresent() && resultado.get()) {
+                // Obtener la configuración de ventana
+                ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+
                 // Obtener la resolución seleccionada
-                javafx.geometry.Dimension2D nuevaResolucion = dialogo.getResolucionSeleccionada();
+                Dimension2D nuevaResolucion = dialogo.getResolucionSeleccionada();
+                boolean modoCompleta = dialogo.isPantallaCompletaSeleccionada();
 
-                // Estimar el tamaño del tablero según la resolución
-                double anchoTablero = nuevaResolucion.getWidth() - 40;
-                double altoTablero = nuevaResolucion.getHeight() - 160;
+                // Obtener la ventana actual
+                Stage ventana = (Stage) getScene().getWindow();
 
-                // Ajustar tamaños de elementos en el panel del tablero
-                panelTablero.ajustarTamanos(anchoTablero, altoTablero);
+                // Aplicar el modo de pantalla completa
+                if (modoCompleta != ventana.isFullScreen()) {
+                    ventana.setFullScreen(modoCompleta);
+                }
 
-                // Actualizar la disposición
-                layout();
+                // Si no es pantalla completa, ajustar el tamaño
+                if (!modoCompleta) {
+                    ventana.setWidth(nuevaResolucion.getWidth());
+                    ventana.setHeight(nuevaResolucion.getHeight());
+
+                    // Centrar la ventana en la pantalla
+                    Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+                    ventana.setX((screenBounds.getWidth() - nuevaResolucion.getWidth()) / 2);
+                    ventana.setY((screenBounds.getHeight() - nuevaResolucion.getHeight()) / 2);
+                }
+
+                // Ajustar el tamaño del tablero después de un breve retraso
+                Platform.runLater(() -> {
+                    ajustarTamañoTablero();
+                });
 
                 // Mostrar mensaje de confirmación
                 barraEstado.establecerMensajeExito("Resolución cambiada a " +
-                        (int)nuevaResolucion.getWidth() + "x" +
-                        (int)nuevaResolucion.getHeight());
+                        (modoCompleta ? "Pantalla Completa" :
+                                (int)nuevaResolucion.getWidth() + "x" +
+                                        (int)nuevaResolucion.getHeight()));
             }
         } catch (Exception e) {
             System.err.println("Error al mostrar diálogo de opciones: " + e.getMessage());
@@ -313,6 +343,7 @@ public class VentanaPrincipal extends BorderPane {
 
             // Reiniciar el juego con el nuevo modo si se aceptó
             if (resultado.isPresent() && resultado.get()) {
+                modoSeleccionado = true;
                 reiniciarJuego();
 
                 // Mostrar mensaje del modo seleccionado
@@ -321,31 +352,22 @@ public class VentanaPrincipal extends BorderPane {
                 } else {
                     barraEstado.establecerMensajeExito("Modo Dos Jugadores");
                 }
+            } else {
+                modoSeleccionado = false;
             }
         } catch (Exception e) {
             System.err.println("Error al mostrar diálogo de modo: " + e.getMessage());
             e.printStackTrace();
+            modoSeleccionado = false;
         }
     }
 
     /**
-     * Reinicia el juego para una nueva partida.
+     * Verifica si se ha seleccionado un modo de juego
+     * @return true si se seleccionó un modo, false si se canceló
      */
-    private void reiniciarJuego() {
-        // Detener efectos visuales
-        panelTablero.detenerEfectos();
-
-        // Detener timers si están activos
-        if (pausaMovimientoMaquina != null) {
-            pausaMovimientoMaquina.stop();
-        }
-
-        // Reiniciar juego en el controlador
-        controlador.reiniciarJuego();
-
-        // Actualizar interfaz
-        panelTablero.refrescarTablero();
-        actualizarEstadoJuego();
+    public boolean isModoSeleccionado() {
+        return modoSeleccionado;
     }
 
     /**
@@ -383,4 +405,25 @@ public class VentanaPrincipal extends BorderPane {
             pausaMovimientoMaquina.playFromStart();
         }
     }
+    /**
+     * Reinicia el juego para una nueva partida.
+     */
+    private void reiniciarJuego() {
+        // Detener efectos visuales
+        panelTablero.detenerEfectos();
+
+        // Detener timers si están activos
+        if (pausaMovimientoMaquina != null) {
+            pausaMovimientoMaquina.stop();
+        }
+
+        // Reiniciar juego en el controlador
+        controlador.reiniciarJuego();
+
+        // Actualizar interfaz
+        panelTablero.refrescarTablero();
+        actualizarEstadoJuego();
+    }
+
+
 }

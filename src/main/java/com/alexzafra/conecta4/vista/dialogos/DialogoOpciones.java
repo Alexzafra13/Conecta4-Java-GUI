@@ -1,35 +1,37 @@
 package com.alexzafra.conecta4.vista.dialogos;
 
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 import com.alexzafra.conecta4.util.ResolucionesJuego;
 import com.alexzafra.conecta4.util.SistemaAudio;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import java.util.Optional;
 
 /**
- * Diálogo para configurar opciones del juego como la resolución y audio
+ * Diálogo para configurar opciones del juego como la resolución y modo de ventana
  */
 public class DialogoOpciones extends Stage {
 
     // Resultado seleccionado
     private Dimension2D resolucionSeleccionada;
     private boolean cambioAceptado = false;
+    private boolean modoCompleta = false;
 
     // Componentes de la interfaz
     private ComboBox<String> comboResolucion;
-    private Slider sliderVolumenEfectos;
-    private Slider sliderVolumenMusica;
-    private CheckBox checkActivarAudio;
+    private ComboBox<String> comboModoVentana;
     private Button btnAceptar;
     private Button btnCancelar;
 
@@ -38,23 +40,17 @@ public class DialogoOpciones extends Stage {
      * @param owner Ventana padre
      */
     public DialogoOpciones(Window owner) {
+        // Configuración básica del diálogo
         initOwner(owner);
         initModality(Modality.APPLICATION_MODAL);
         initStyle(StageStyle.UNDECORATED);
 
         setTitle("Opciones de Juego");
 
-        // Establecer la resolución actual
-        if (owner instanceof Stage) {
-            Stage ventanaPadre = (Stage) owner;
-            this.resolucionSeleccionada = new Dimension2D(
-                    ventanaPadre.getWidth(),
-                    ventanaPadre.getHeight()
-            );
-        } else {
-            // Valor por defecto si no hay ventana padre
-            this.resolucionSeleccionada = ResolucionesJuego.RES_1024x768;
-        }
+        // Obtener la configuración actual
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        this.resolucionSeleccionada = config.getResolucion();
+        this.modoCompleta = config.isPantallaCompleta();
 
         // Inicializar componentes
         inicializarComponentes();
@@ -86,53 +82,37 @@ public class DialogoOpciones extends Stage {
 
         comboResolucion = new ComboBox<>();
         comboResolucion.getItems().addAll(ResolucionesJuego.NOMBRES_RESOLUCIONES);
-        comboResolucion.setPrefWidth(200);
 
         // Establecer la selección actual basada en la resolución actual
         String resolucionActual = ResolucionesJuego.obtenerNombreResolucion(resolucionSeleccionada);
         comboResolucion.setValue(resolucionActual);
+        comboResolucion.setPrefWidth(200);
 
         gridOpciones.add(lblResolucion, 0, 0);
         gridOpciones.add(comboResolucion, 1, 0);
 
-        // Configuración de audio
-        Label lblAudio = new Label("Audio:");
-        lblAudio.setStyle("-fx-text-fill: white;");
+        // Selección de modo de ventana
+        Label lblModoVentana = new Label("Modo de Ventana:");
+        lblModoVentana.setStyle("-fx-text-fill: white;");
 
-        checkActivarAudio = new CheckBox("Activar audio");
-        checkActivarAudio.setSelected(SistemaAudio.getInstancia().isAudioActivado());
-        checkActivarAudio.setStyle("-fx-text-fill: white;");
+        comboModoVentana = new ComboBox<>();
+        comboModoVentana.getItems().addAll("Ventana", "Pantalla Completa");
 
-        gridOpciones.add(lblAudio, 0, 1);
-        gridOpciones.add(checkActivarAudio, 1, 1);
+        // Establecer el modo actual
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+        comboModoVentana.setValue(config.isPantallaCompleta() ? "Pantalla Completa" : "Ventana");
+        comboModoVentana.setPrefWidth(200);
 
-        // Volumen de efectos
-        Label lblVolumenEfectos = new Label("Volumen efectos:");
-        lblVolumenEfectos.setStyle("-fx-text-fill: white;");
+        // Añadir listener para desactivar el selector de resolución en modo pantalla completa
+        comboModoVentana.valueProperty().addListener((obs, oldVal, newVal) -> {
+            comboResolucion.setDisable("Pantalla Completa".equals(newVal));
+        });
 
-        sliderVolumenEfectos = new Slider(0, 1, SistemaAudio.getInstancia().getVolumenEfectos());
-        sliderVolumenEfectos.setPrefWidth(200);
-        sliderVolumenEfectos.setShowTickMarks(true);
-        sliderVolumenEfectos.setShowTickLabels(true);
-        sliderVolumenEfectos.setMajorTickUnit(0.25);
-        sliderVolumenEfectos.setBlockIncrement(0.1);
+        // Inicializar el estado del selector de resolución según el modo actual
+        comboResolucion.setDisable("Pantalla Completa".equals(comboModoVentana.getValue()));
 
-        gridOpciones.add(lblVolumenEfectos, 0, 2);
-        gridOpciones.add(sliderVolumenEfectos, 1, 2);
-
-        // Volumen de música
-        Label lblVolumenMusica = new Label("Volumen música:");
-        lblVolumenMusica.setStyle("-fx-text-fill: white;");
-
-        sliderVolumenMusica = new Slider(0, 1, SistemaAudio.getInstancia().getVolumenMusica());
-        sliderVolumenMusica.setPrefWidth(200);
-        sliderVolumenMusica.setShowTickMarks(true);
-        sliderVolumenMusica.setShowTickLabels(true);
-        sliderVolumenMusica.setMajorTickUnit(0.25);
-        sliderVolumenMusica.setBlockIncrement(0.1);
-
-        gridOpciones.add(lblVolumenMusica, 0, 3);
-        gridOpciones.add(sliderVolumenMusica, 1, 3);
+        gridOpciones.add(lblModoVentana, 0, 1);
+        gridOpciones.add(comboModoVentana, 1, 1);
 
         // Panel de botones
         HBox panelBotones = new HBox(15);
@@ -148,10 +128,13 @@ public class DialogoOpciones extends Stage {
                 String resolucionSeleccionadaTexto = comboResolucion.getValue();
                 resolucionSeleccionada = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionadaTexto);
 
-                // Aplicar configuración de audio
-                SistemaAudio.getInstancia().setAudioActivado(checkActivarAudio.isSelected());
-                SistemaAudio.getInstancia().setVolumenEfectos(sliderVolumenEfectos.getValue());
-                SistemaAudio.getInstancia().setVolumenMusica(sliderVolumenMusica.getValue());
+                // Guardar modo de ventana
+                modoCompleta = "Pantalla Completa".equals(comboModoVentana.getValue());
+
+                // Actualizar configuración global
+                ConfiguracionVentana configVentana = ConfiguracionVentana.getInstancia();
+                configVentana.setResolucion(resolucionSeleccionada);
+                configVentana.setPantallaCompleta(modoCompleta);
 
                 cambioAceptado = true;
                 close();
@@ -201,6 +184,14 @@ public class DialogoOpciones extends Stage {
      */
     public Dimension2D getResolucionSeleccionada() {
         return resolucionSeleccionada;
+    }
+
+    /**
+     * Obtiene el modo de pantalla completa seleccionado
+     * @return true si se seleccionó pantalla completa, false para modo ventana
+     */
+    public boolean isPantallaCompletaSeleccionada() {
+        return modoCompleta;
     }
 
     /**

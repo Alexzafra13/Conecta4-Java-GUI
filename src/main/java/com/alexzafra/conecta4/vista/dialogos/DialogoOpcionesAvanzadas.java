@@ -160,6 +160,15 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
         comboModoVentana.setValue(ownerStage.isFullScreen() ? "Pantalla completa" : "Ventana");
         comboModoVentana.setPrefWidth(200);
 
+        // Añadir listener para habilitar/deshabilitar comboResolucion
+        comboModoVentana.valueProperty().addListener((obs, oldVal, newVal) -> {
+            boolean esPantallaCompleta = "Pantalla completa".equals(newVal);
+            comboResolucion.setDisable(esPantallaCompleta);
+        });
+
+        // Establecer estado inicial del comboResolucion
+        comboResolucion.setDisable("Pantalla completa".equals(comboModoVentana.getValue()));
+
         panelResolucion.add(lblModoVentana, 0, 1);
         panelResolucion.add(comboModoVentana, 1, 1);
 
@@ -338,8 +347,8 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
         ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
 
         // Obtener la resolución seleccionada
-        String resolucionSeleccionada = comboResolucion.getValue();
-        Dimension2D nuevaResolucion = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionada);
+        String resolucionSeleccionadaTexto = comboResolucion.getValue();
+        Dimension2D nuevaResolucion = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionadaTexto);
 
         // Verificar el modo de ventana seleccionado
         String modoVentana = comboModoVentana.getValue();
