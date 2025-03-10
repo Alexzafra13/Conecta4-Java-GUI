@@ -9,12 +9,15 @@ import com.alexzafra.conecta4.vista.dialogos.DialogoOpciones;
 import com.alexzafra.conecta4.vista.dialogos.DialogoSeleccionModo;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 
 import java.util.Optional;
 
@@ -147,14 +150,24 @@ public class VentanaPrincipal extends BorderPane {
     private void ajustarTamañoTablero() {
         if (panelTablero != null && getScene() != null) {
             try {
-                // Calcular espacio disponible (descontando espacios para otros elementos)
-                double anchoDisponible = getWidth();
-                double altoDisponible = getHeight() - 200; // Aproximado para otros paneles
+                // Obtener la configuración guardada
+                ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+                Dimension2D resolucion = config.getResolucion();
+                boolean pantallaCompleta = config.isPantallaCompleta();
+
+                // Calcular espacio disponible
+                double anchoDisponible = pantallaCompleta ?
+                        getWidth() : resolucion.getWidth();
+
+                double altoDisponible = pantallaCompleta ?
+                        getHeight() : resolucion.getHeight() - 200;
 
                 if (anchoDisponible > 0 && altoDisponible > 0) {
                     // Ajustar el tamaño del tablero
                     panelTablero.ajustarTamanos(anchoDisponible, altoDisponible);
-                    System.out.println("Ajustando tablero a: " + anchoDisponible + "x" + altoDisponible);
+                    System.out.println("Ajustando tablero: " +
+                            (pantallaCompleta ? "Pantalla Completa" : "Ventana Normal") +
+                            " - " + anchoDisponible + "x" + altoDisponible);
                 }
             } catch (Exception e) {
                 System.err.println("Error al ajustar tamaño del tablero: " + e.getMessage());

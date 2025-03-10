@@ -88,20 +88,20 @@ public class TableroView extends Pane {
         }
 
         try {
-            // Asegurarse de que se usan correctamente los márgenes
-            double margenHorizontal = 40; // Margen en ambos lados (izquierdo y derecho)
-            double margenVertical = 40;   // Margen en ambos lados (superior e inferior)
+            // Márgenes ajustables
+            double margenHorizontal = Math.min(40, anchoVentana * 0.05);
+            double margenVertical = Math.min(40, altoVentana * 0.05);
 
             // Ancho y alto disponibles después de considerar márgenes
-            double anchoDisponible = anchoVentana - margenHorizontal;
-            double altoDisponible = altoVentana - margenVertical;
+            double anchoDisponible = anchoVentana - margenHorizontal * 2;
+            double altoDisponible = altoVentana - margenVertical * 2;
 
             // Calcular tamaño de celda basado en el espacio disponible
             double tamanoOptimoCeldaAncho = anchoDisponible / Tablero.COLUMNAS;
             double tamanoOptimoCeldaAlto = altoDisponible / Tablero.FILAS;
 
-            // Usar el menor para mantener las celdas cuadradas
-            tamanoCelda = Math.min(tamanoOptimoCeldaAncho, tamanoOptimoCeldaAlto);
+            // Usar el menor para mantener las celdas cuadradas, con un límite máximo
+            tamanoCelda = Math.min(Math.min(tamanoOptimoCeldaAncho, tamanoOptimoCeldaAlto), 200);
 
             // Ajustar tamaño de ficha proporcionalmente (80% del tamaño de celda)
             tamanoFicha = tamanoCelda * 0.8;
@@ -113,24 +113,20 @@ public class TableroView extends Pane {
             canvas.setWidth(anchoCanvas);
             canvas.setHeight(altoCanvas);
 
-            // Establecer el tamaño preferido del panel
-            setPrefWidth(anchoVentana);  // Usar todo el ancho disponible
-            setPrefHeight(altoDisponible);
-
-            // Centrar el canvas dentro del panel
+            // Centrar el canvas horizontalmente
             double xPos = (anchoVentana - anchoCanvas) / 2;
             canvas.setLayoutX(xPos > 0 ? xPos : 0);
-            canvas.setLayoutY(0); // Al inicio verticalmente
+            canvas.setLayoutY(0);
 
             // Redibujar el tablero con los nuevos tamaños
             dibujarTablero();
 
-            // Log para depuración
-            System.out.println("Tablero redimensionado: " + anchoCanvas + "x" + altoCanvas +
-                    " (tamaño celda: " + tamanoCelda + ", tamaño ficha: " + tamanoFicha + ")");
+            System.out.println("Tablero redimensionado: " +
+                    anchoCanvas + "x" + altoCanvas +
+                    " (tamaño celda: " + tamanoCelda +
+                    ", tamaño ficha: " + tamanoFicha + ")");
         } catch (Exception e) {
             System.err.println("Error al ajustar tamaños del tablero: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 

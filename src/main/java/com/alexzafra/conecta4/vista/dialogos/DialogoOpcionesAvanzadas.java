@@ -1,10 +1,15 @@
 package com.alexzafra.conecta4.vista.dialogos;
 
+import com.alexzafra.conecta4.util.ResolucionesJuego;
 import com.alexzafra.conecta4.util.SistemaAudio;
+import com.alexzafra.conecta4.vista.VentanaPrincipal;
 import com.alexzafra.conecta4.vista.componentes.ReproductorMusica;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
@@ -21,22 +26,12 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 
 /**
  * Diálogo avanzado de opciones que permite configurar resolución, sonido, etc.
  */
 public class DialogoOpcionesAvanzadas extends Dialog<Void> {
-
-    // Resoluciones predefinidas (ancho x alto)
-    private static final String[] RESOLUCIONES = {
-            "800 x 600",      // SVGA
-            "1024 x 768",     // XGA
-            "1280 x 720",     // HD
-            "1366 x 768",     // HD+
-            "1600 x 900",     // HD+
-            "1920 x 1080",    // Full HD (1080p)
-            "2560 x 1440"     // 2K (QHD)
-    };
 
     // Valores de volumen
     private double volumenEfectos = 0.8;
@@ -44,6 +39,7 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
 
     // Componentes de la interfaz
     private ComboBox<String> comboResolucion;
+    private ComboBox<String> comboModoVentana;
     private Slider sliderEfectos;
     private Slider sliderMusica;
     private Stage ownerStage;
@@ -144,26 +140,12 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
         lblResolucion.setTextFill(Color.WHITE);
 
         comboResolucion = new ComboBox<>();
-        comboResolucion.getItems().addAll(RESOLUCIONES);
+        comboResolucion.getItems().addAll(ResolucionesJuego.NOMBRES_RESOLUCIONES);
 
         // Establecer resolución actual seleccionada
-        String resolucionActual = String.format("%d x %d",
-                (int) ownerStage.getWidth(),
-                (int) ownerStage.getHeight());
-
-        boolean encontrada = false;
-        for (String res : RESOLUCIONES) {
-            if (res.equals(resolucionActual)) {
-                comboResolucion.setValue(res);
-                encontrada = true;
-                break;
-            }
-        }
-
-        if (!encontrada) {
-            comboResolucion.setValue(RESOLUCIONES[1]); // Default
-        }
-
+        String resolucionActual = ResolucionesJuego.obtenerNombreResolucion(
+                new Dimension2D(ownerStage.getWidth(), ownerStage.getHeight()));
+        comboResolucion.setValue(resolucionActual);
         comboResolucion.setPrefWidth(200);
 
         panelResolucion.add(lblResolucion, 0, 0);
@@ -173,9 +155,9 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
         Label lblModoVentana = new Label("Modo de ventana:");
         lblModoVentana.setTextFill(Color.WHITE);
 
-        ComboBox<String> comboModoVentana = new ComboBox<>();
+        comboModoVentana = new ComboBox<>();
         comboModoVentana.getItems().addAll("Ventana", "Pantalla completa");
-        comboModoVentana.setValue("Ventana");
+        comboModoVentana.setValue(ownerStage.isFullScreen() ? "Pantalla completa" : "Ventana");
         comboModoVentana.setPrefWidth(200);
 
         panelResolucion.add(lblModoVentana, 0, 1);
@@ -352,29 +334,29 @@ public class DialogoOpcionesAvanzadas extends Dialog<Void> {
      * Aplica los cambios de resolución
      */
     private void aplicarCambiosResolucion() {
+        // Obtener la instancia de configuración de ventana
+        ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+
         // Obtener la resolución seleccionada
-        String resolucion = comboResolucion.getValue();
-        int ancho = 800; // Valor por defecto
-        int alto = 600;  // Valor por defecto
+        String resolucionSeleccionada = comboResolucion.getValue();
+        Dimension2D nuevaResolucion = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionada);
 
-        // Parsear la resolución
-        if (resolucion != null && !resolucion.isEmpty()) {
-            String[] partes = resolucion.split("x");
-            if (partes.length == 2) {
-                try {
-                    ancho = Integer.parseInt(partes[0].trim());
-                    alto = Integer.parseInt(partes[1].trim());
-                } catch (NumberFormatException e) {
-                    // Usar valores por defecto si hay error
-                }
-            }
+        // Verificar el modo de ventana seleccionado
+        String modoVentana = comboModoVentana.getValue();
+        boolean modoPantallaCompleta = "Pantalla completa".equals(modoVentana);
+
+        // Guardar la configuración
+        config.setResolucion(nuevaResolucion);
+        config.setPantallaCompleta(modoPantallaCompleta);
+
+        // Aplicar el modo de pantalla completa
+        ownerStage.setFullScreen(modoPantallaCompleta);
+
+        // Si no es pantalla completa, aplicar la resolución seleccionada
+        if (!modoPantallaCompleta) {
+            ownerStage.setWidth(nuevaResolucion.getWidth());
+            ownerStage.setHeight(nuevaResolucion.getHeight());
+            ownerStage.centerOnScreen();
         }
-
-        // Aplicar la nueva resolución
-        ownerStage.setWidth(ancho);
-        ownerStage.setHeight(alto);
-
-        // Centrar la ventana
-        ownerStage.centerOnScreen();
     }
 }

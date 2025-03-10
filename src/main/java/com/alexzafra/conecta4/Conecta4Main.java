@@ -1,7 +1,9 @@
 package com.alexzafra.conecta4;
 
 import com.alexzafra.conecta4.vista.PantallaInicio;
+import com.alexzafra.conecta4.util.ConfiguracionVentana;
 import javafx.application.Application;
+import javafx.geometry.Dimension2D;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
@@ -14,12 +16,25 @@ public class Conecta4Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
+            // Obtener la configuración guardada
+            ConfiguracionVentana config = ConfiguracionVentana.getInstancia();
+            Dimension2D resolucion = config.getResolucion();
+            boolean pantallaCompleta = config.isPantallaCompleta();
+
             // Configurar la ventana principal
             primaryStage.setTitle("Conecta 4");
-            primaryStage.setWidth(800);
-            primaryStage.setHeight(700);
-            primaryStage.setResizable(true);
-            primaryStage.setMinWidth(700);   // Establecer tamaño mínimo para evitar problemas de layout
+            primaryStage.setFullScreen(pantallaCompleta);
+
+            if (!pantallaCompleta) {
+                primaryStage.setWidth(resolucion.getWidth());
+                primaryStage.setHeight(resolucion.getHeight());
+            } else {
+                // Si está en pantalla completa, usar un tamaño de ventana predeterminado
+                primaryStage.setWidth(1024);
+                primaryStage.setHeight(768);
+            }
+
+            primaryStage.setMinWidth(700);
             primaryStage.setMinHeight(600);
 
             // Intentar cargar un icono (opcional)
@@ -35,6 +50,14 @@ public class Conecta4Main extends Application {
 
             // Agregar escuchador para cambios de resolución de pantalla
             primaryStage.widthProperty().addListener((obs, oldVal, newVal) -> {
+                // Actualizar la configuración global
+                if (!primaryStage.isFullScreen()) {
+                    config.setResolucion(new Dimension2D(
+                            newVal.doubleValue(),
+                            primaryStage.getHeight()
+                    ));
+                }
+
                 // Ajustar el tamaño de los componentes de la pantalla de inicio
                 if (scene.getRoot() instanceof PantallaInicio) {
                     ((PantallaInicio) scene.getRoot()).ajustarTamaño(
@@ -43,11 +66,25 @@ public class Conecta4Main extends Application {
             });
 
             primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> {
+                // Actualizar la configuración global
+                if (!primaryStage.isFullScreen()) {
+                    config.setResolucion(new Dimension2D(
+                            primaryStage.getWidth(),
+                            newVal.doubleValue()
+                    ));
+                }
+
                 // Ajustar el tamaño de los componentes de la pantalla de inicio
                 if (scene.getRoot() instanceof PantallaInicio) {
                     ((PantallaInicio) scene.getRoot()).ajustarTamaño(
                             primaryStage.getWidth(), newVal.doubleValue());
                 }
+            });
+
+            // Escuchar cambios en el modo de pantalla completa
+            primaryStage.fullScreenProperty().addListener((obs, oldVal, newVal) -> {
+                // Actualizar la configuración global
+                config.setPantallaCompleta(newVal);
             });
 
             // También detectar cambios en modo pantalla completa

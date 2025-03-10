@@ -1,5 +1,6 @@
 package com.alexzafra.conecta4.vista.dialogos;
 
+import com.alexzafra.conecta4.util.ResolucionesJuego;
 import com.alexzafra.conecta4.util.SistemaAudio;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
@@ -20,13 +21,8 @@ import java.util.Optional;
  */
 public class DialogoOpciones extends Stage {
 
-    // Resoluciones disponibles
-    public static final Dimension2D RESOLUCION_PEQUENA = new Dimension2D(700, 600);
-    public static final Dimension2D RESOLUCION_MEDIA = new Dimension2D(800, 700);
-    public static final Dimension2D RESOLUCION_GRANDE = new Dimension2D(1000, 850);
-
     // Resultado seleccionado
-    private Dimension2D resolucionSeleccionada = RESOLUCION_MEDIA; // Por defecto
+    private Dimension2D resolucionSeleccionada;
     private boolean cambioAceptado = false;
 
     // Componentes de la interfaz
@@ -55,6 +51,9 @@ public class DialogoOpciones extends Stage {
                     ventanaPadre.getWidth(),
                     ventanaPadre.getHeight()
             );
+        } else {
+            // Valor por defecto si no hay ventana padre
+            this.resolucionSeleccionada = ResolucionesJuego.RES_1024x768;
         }
 
         // Inicializar componentes
@@ -86,21 +85,12 @@ public class DialogoOpciones extends Stage {
         lblResolucion.setStyle("-fx-text-fill: white;");
 
         comboResolucion = new ComboBox<>();
-        comboResolucion.getItems().addAll(
-                "Pequeña (700x600)",
-                "Media (800x700)",
-                "Grande (1000x850)"
-        );
+        comboResolucion.getItems().addAll(ResolucionesJuego.NOMBRES_RESOLUCIONES);
         comboResolucion.setPrefWidth(200);
 
         // Establecer la selección actual basada en la resolución actual
-        if (Math.abs(resolucionSeleccionada.getWidth() - RESOLUCION_PEQUENA.getWidth()) < 1) {
-            comboResolucion.getSelectionModel().select(0);
-        } else if (Math.abs(resolucionSeleccionada.getWidth() - RESOLUCION_MEDIA.getWidth()) < 1) {
-            comboResolucion.getSelectionModel().select(1);
-        } else if (Math.abs(resolucionSeleccionada.getWidth() - RESOLUCION_GRANDE.getWidth()) < 1) {
-            comboResolucion.getSelectionModel().select(2);
-        }
+        String resolucionActual = ResolucionesJuego.obtenerNombreResolucion(resolucionSeleccionada);
+        comboResolucion.setValue(resolucionActual);
 
         gridOpciones.add(lblResolucion, 0, 0);
         gridOpciones.add(comboResolucion, 1, 0);
@@ -120,7 +110,7 @@ public class DialogoOpciones extends Stage {
         Label lblVolumenEfectos = new Label("Volumen efectos:");
         lblVolumenEfectos.setStyle("-fx-text-fill: white;");
 
-        sliderVolumenEfectos = new Slider(0, 1, 0.7);
+        sliderVolumenEfectos = new Slider(0, 1, SistemaAudio.getInstancia().getVolumenEfectos());
         sliderVolumenEfectos.setPrefWidth(200);
         sliderVolumenEfectos.setShowTickMarks(true);
         sliderVolumenEfectos.setShowTickLabels(true);
@@ -134,7 +124,7 @@ public class DialogoOpciones extends Stage {
         Label lblVolumenMusica = new Label("Volumen música:");
         lblVolumenMusica.setStyle("-fx-text-fill: white;");
 
-        sliderVolumenMusica = new Slider(0, 1, 0.5);
+        sliderVolumenMusica = new Slider(0, 1, SistemaAudio.getInstancia().getVolumenMusica());
         sliderVolumenMusica.setPrefWidth(200);
         sliderVolumenMusica.setShowTickMarks(true);
         sliderVolumenMusica.setShowTickLabels(true);
@@ -155,18 +145,8 @@ public class DialogoOpciones extends Stage {
                 SistemaAudio.getInstancia().reproducirEfecto("boton");
 
                 // Guardar resolución seleccionada
-                int indice = comboResolucion.getSelectionModel().getSelectedIndex();
-                switch (indice) {
-                    case 0:
-                        resolucionSeleccionada = RESOLUCION_PEQUENA;
-                        break;
-                    case 1:
-                        resolucionSeleccionada = RESOLUCION_MEDIA;
-                        break;
-                    case 2:
-                        resolucionSeleccionada = RESOLUCION_GRANDE;
-                        break;
-                }
+                String resolucionSeleccionadaTexto = comboResolucion.getValue();
+                resolucionSeleccionada = ResolucionesJuego.obtenerResolucionPorNombre(resolucionSeleccionadaTexto);
 
                 // Aplicar configuración de audio
                 SistemaAudio.getInstancia().setAudioActivado(checkActivarAudio.isSelected());
