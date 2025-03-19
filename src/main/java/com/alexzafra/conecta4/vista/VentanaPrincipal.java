@@ -1,8 +1,11 @@
 package com.alexzafra.conecta4.vista;
 
 import com.alexzafra.conecta4.controller.ControladorJuego;
+import com.alexzafra.conecta4.controller.InteligenciaArtificial;
+import com.alexzafra.conecta4.modelos.Tablero;
 import com.alexzafra.conecta4.util.ConfiguracionVentana;
 import com.alexzafra.conecta4.util.SistemaAudio;
+import com.alexzafra.conecta4.vista.componentes.BarraArrastre;
 import com.alexzafra.conecta4.vista.componentes.BarraEstado;
 import com.alexzafra.conecta4.vista.componentes.PanelPuntuaciones;
 import com.alexzafra.conecta4.vista.componentes.ReproductorMusica;
@@ -10,19 +13,22 @@ import com.alexzafra.conecta4.vista.dialogos.DialogoOpciones;
 import com.alexzafra.conecta4.vista.dialogos.DialogoSeleccionModo;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.collections.ObservableList;
-import javafx.scene.Node;
-import com.alexzafra.conecta4.vista.componentes.BarraArrastre;
 
 import java.util.Optional;
 
@@ -44,6 +50,9 @@ public class VentanaPrincipal extends BorderPane {
 
     // Variable para pausar entre movimientos de la máquina
     private PauseTransition pausaMovimientoMaquina;
+
+    // Variable para controlar la columna seleccionada por la IA
+    private int columnaSeleccionadaIA = -1;
 
     /**
      * Constructor de la ventana principal.
@@ -113,12 +122,18 @@ public class VentanaPrincipal extends BorderPane {
         // Configurar la pausa para el movimiento de la máquina
         pausaMovimientoMaquina = new PauseTransition(Duration.millis(800));
         pausaMovimientoMaquina.setOnFinished(event -> {
-            // Realizar movimiento de la máquina
-            controlador.realizarMovimientoMaquina();
+            // Calcular el movimiento de la IA sin aplicarlo aún
+            columnaSeleccionadaIA = obtenerColumnaMovimientoIA();
 
-            // Actualizar la interfaz después del movimiento
-            panelTablero.refrescarTablero();
-            barraEstado.establecerMensajeEstado(controlador.getMensajeEstado());
+            if (columnaSeleccionadaIA >= 0) {
+                // Iniciar animación de caída para la ficha de la IA
+                panelTablero.iniciarAnimacionCaidaIA(columnaSeleccionadaIA);
+            } else {
+                // Si por alguna razón no se obtuvo una columna válida, hacer movimiento directo
+                controlador.realizarMovimientoMaquina();
+                panelTablero.refrescarTablero();
+                barraEstado.establecerMensajeEstado(controlador.getMensajeEstado());
+            }
         });
 
         // Crear un contenedor que centrará el tablero
@@ -395,6 +410,51 @@ public class VentanaPrincipal extends BorderPane {
     }
 
     /**
+     * Obtiene la columna donde la IA realizará su movimiento sin aplicarlo aún
+     * @return Columna seleccionada o -1 si no puede determinar la columna
+     */
+    private int obtenerColumnaMovimientoIA() {
+        // Si la IA ya ha colocado una ficha o el juego ha terminado, retornar -1
+        if (controlador.isJuegoTerminado()) {
+            return -1;
+        }
+
+        try {
+            // Primero, intentamos usar la lógica interna de la IA para determinar la columna
+            InteligenciaArtificial ia = new InteligenciaArtificial(controlador.getTablero(),
+                    controlador.getIA().getNivelDificultad());
+
+            // Obtenemos la columna que elegiría la IA
+            int columna = ia.obtenerColumnaMovimiento(controlador.getJugador1().getId(),
+                    controlador.getJugador2().getId());
+
+            // Verificamos que la columna es válida
+            if (columna >= 0 && columna < Tablero.COLUMNAS && !controlador.getTablero().columnaLlena(columna)) {
+                return columna;
+            }
+
+            // Si la IA devuelve una columna inválida o -1, buscamos una columna válida
+            for (int col = 0; col < Tablero.COLUMNAS; col++) {
+                if (!controlador.getTablero().columnaLlena(col)) {
+                    return col;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al obtener columna de la IA: " + e.getMessage());
+
+            // En caso de error, buscar cualquier columna disponible
+            for (int col = 0; col < Tablero.COLUMNAS; col++) {
+                if (!controlador.getTablero().columnaLlena(col)) {
+                    return col;
+                }
+            }
+        }
+
+        // Si no encontramos ninguna columna válida, devolvemos -1
+        return -1;
+    }
+
+    /**
      * Actualiza el estado del juego en la interfaz.
      * Se llama después de cada movimiento.
      */
@@ -414,6 +474,7 @@ public class VentanaPrincipal extends BorderPane {
             pausaMovimientoMaquina.playFromStart();
         }
     }
+
     /**
      * Reinicia el juego para una nueva partida.
      */
@@ -483,6 +544,4 @@ public class VentanaPrincipal extends BorderPane {
             }
         }
     }
-
-
 }

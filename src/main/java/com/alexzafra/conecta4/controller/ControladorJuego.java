@@ -21,6 +21,10 @@ public class ControladorJuego {
     private boolean modoUnJugador;
     private InteligenciaArtificial ia;
 
+    // Variables para seguimiento del último movimiento
+    private int ultimaFilaMovimiento = -1;
+    private int ultimaColumnaMovimiento = -1;
+
     /**
      * Constructor del controlador del juego.
      * Inicializa el tablero, los jugadores y el estado del juego.
@@ -71,6 +75,8 @@ public class ControladorJuego {
         jugadorActual = jugador1;
         juegoTerminado = false;
         empate = false;
+        ultimaFilaMovimiento = -1;
+        ultimaColumnaMovimiento = -1;
     }
 
     /**
@@ -95,6 +101,10 @@ public class ControladorJuego {
         // Colocar ficha del jugador actual
         tablero.colocarFicha(fila, columna, jugadorActual.getId());
 
+        // Guardar la posición del último movimiento
+        ultimaFilaMovimiento = fila;
+        ultimaColumnaMovimiento = columna;
+
         // Comprobar si hay ganador
         if (tablero.hayGanador(fila, columna)) {
             juegoTerminado = true;
@@ -114,7 +124,8 @@ public class ControladorJuego {
 
         // Si es modo un jugador y le toca a la máquina, hacer movimiento automático
         if (modoUnJugador && jugadorActual == jugador2) {
-            realizarMovimientoMaquina();
+            // Nota: Ahora el movimiento de la máquina se maneja de forma diferente a través de la interfaz gráfica
+            // para permitir la animación de caída, así que no llamamos a realizarMovimientoMaquina() aquí
         }
 
         return true;
@@ -135,16 +146,17 @@ public class ControladorJuego {
 
         // Si la columna es -1, significa que la IA ya colocó la ficha en alguna estrategia
         if (columna == -1) {
-            // Comprobar si con ese movimiento la máquina ganó
-            for (int fila = 0; fila < Tablero.FILAS; fila++) {
-                for (int col = 0; col < Tablero.COLUMNAS; col++) {
-                    if (tablero.obtenerCasilla(fila, col) == jugador2.getId() &&
-                            tablero.hayGanador(fila, col)) {
+            // La IA ya colocó la ficha, verificar el estado del juego
 
-                        juegoTerminado = true;
-                        jugador2.incrementarPuntuacion();
-                        return true;
-                    }
+            // Buscar la posición donde la IA colocó la ficha
+            encontrarUltimoMovimientoIA();
+
+            // Comprobar si con ese movimiento la máquina ganó
+            if (ultimaFilaMovimiento >= 0 && ultimaColumnaMovimiento >= 0) {
+                if (tablero.hayGanador(ultimaFilaMovimiento, ultimaColumnaMovimiento)) {
+                    juegoTerminado = true;
+                    jugador2.incrementarPuntuacion();
+                    return true;
                 }
             }
 
@@ -161,6 +173,10 @@ public class ControladorJuego {
         } else {
             // Encontrar la fila disponible
             int fila = tablero.obtenerFilaDisponible(columna);
+
+            // Guardar la posición del movimiento
+            ultimaFilaMovimiento = fila;
+            ultimaColumnaMovimiento = columna;
 
             // Colocar ficha de la máquina
             tablero.colocarFicha(fila, columna, jugador2.getId());
@@ -182,6 +198,24 @@ public class ControladorJuego {
             // Cambiar turno al jugador humano
             jugadorActual = jugador1;
             return true;
+        }
+    }
+
+    /**
+     * Busca en el tablero la última ficha colocada por la IA
+     */
+    private void encontrarUltimoMovimientoIA() {
+        // Recorrer el tablero buscando la última ficha de la IA (jugador 2)
+        for (int fila = 0; fila < Tablero.FILAS; fila++) {
+            for (int col = 0; col < Tablero.COLUMNAS; col++) {
+                if (tablero.obtenerCasilla(fila, col) == jugador2.getId()) {
+                    // Verificar si esta posición no tenía ficha antes
+                    ultimaFilaMovimiento = fila;
+                    ultimaColumnaMovimiento = col;
+                    // No retornamos de inmediato, pues queremos encontrar
+                    // la ficha que esté más arriba (última colocada)
+                }
+            }
         }
     }
 
@@ -242,6 +276,30 @@ public class ControladorJuego {
     }
 
     /**
+     * Obtiene la fila de la última ficha colocada
+     * @return Fila de la última ficha o -1 si no hay
+     */
+    public int getUltimaFilaMovimiento() {
+        return ultimaFilaMovimiento;
+    }
+
+    /**
+     * Obtiene la columna de la última ficha colocada
+     * @return Columna de la última ficha o -1 si no hay
+     */
+    public int getUltimaColumnaMovimiento() {
+        return ultimaColumnaMovimiento;
+    }
+
+    /**
+     * Obtiene la IA del juego
+     * @return Inteligencia artificial
+     */
+    public InteligenciaArtificial getIA() {
+        return ia;
+    }
+
+    /**
      * Obtiene el mensaje de estado actual del juego.
      * @return Mensaje descriptivo del estado actual
      */
@@ -255,5 +313,28 @@ public class ControladorJuego {
         } else {
             return "Turno de " + jugadorActual.getNombre();
         }
+    }
+
+    /**
+     * Establece explícitamente el estado de juego terminado
+     * @param juegoTerminado Nuevo estado
+     */
+    public void setJuegoTerminado(boolean juegoTerminado) {
+        this.juegoTerminado = juegoTerminado;
+    }
+
+    /**
+     * Establece explícitamente el estado de empate
+     * @param empate Nuevo estado
+     */
+    public void setEmpate(boolean empate) {
+        this.empate = empate;
+    }
+
+    /**
+     * Cambia el turno al otro jugador
+     */
+    public void cambiarTurno() {
+        jugadorActual = (jugadorActual == jugador1) ? jugador2 : jugador1;
     }
 }

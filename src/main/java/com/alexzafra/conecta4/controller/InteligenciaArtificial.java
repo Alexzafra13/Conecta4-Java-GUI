@@ -55,6 +55,140 @@ public class InteligenciaArtificial {
     }
 
     /**
+     * Obtiene la columna donde la IA realizaría su movimiento sin aplicarlo
+     * @param jugadorId ID del jugador (para verificar jugadas)
+     * @param maquinaId ID de la máquina
+     * @return Columna seleccionada para el movimiento
+     */
+    public int obtenerColumnaMovimiento(int jugadorId, int maquinaId) {
+        // Reiniciar la variable de control
+        fichaInsertada = false;
+
+        int columnaSeleccionada = -1;
+
+        // Buscar primero movimientos para ganar en una jugada
+        for (int columna = 0; columna < Tablero.COLUMNAS; columna++) {
+            if (!tablero.columnaLlena(columna)) {
+                int fila = tablero.obtenerFilaDisponible(columna);
+
+                // Colocar temporalmente la ficha para verificar si gana
+                tablero.colocarFicha(fila, columna, maquinaId);
+
+                // Verificar si con este movimiento la IA ganaría
+                if (tablero.hayGanador(fila, columna)) {
+                    // Restaurar el tablero
+                    tablero.colocarFicha(fila, columna, Tablero.VACIO);
+                    return columna; // Retorna esta columna para ganar
+                }
+
+                // Restaurar el tablero
+                tablero.colocarFicha(fila, columna, Tablero.VACIO);
+            }
+        }
+
+        // Según el nivel, buscar la mejor jugada
+        switch (nivelDificultad) {
+            case NIVEL_FACIL:
+                columnaSeleccionada = movimientoFacil();
+                break;
+
+            case NIVEL_MEDIO:
+                // Buscar jugadas para bloquear al oponente
+                for (int columna = 0; columna < Tablero.COLUMNAS; columna++) {
+                    if (!tablero.columnaLlena(columna)) {
+                        int fila = tablero.obtenerFilaDisponible(columna);
+
+                        // Colocar temporalmente la ficha del jugador para ver si ganaría
+                        tablero.colocarFicha(fila, columna, jugadorId);
+
+                        // Verificar si con este movimiento el jugador ganaría
+                        if (tablero.hayGanador(fila, columna)) {
+                            // Restaurar el tablero
+                            tablero.colocarFicha(fila, columna, Tablero.VACIO);
+                            return columna; // Bloquear esta columna
+                        }
+
+                        // Restaurar el tablero
+                        tablero.colocarFicha(fila, columna, Tablero.VACIO);
+                    }
+                }
+
+                // Si no hay nada que bloquear, hacer un movimiento aleatorio
+                columnaSeleccionada = movimientoFacil();
+                break;
+
+            case NIVEL_DIFICIL:
+                // Usar las estrategias del nivel medio más algunos movimientos avanzados
+
+                // Intentar bloquear al oponente (igual que en nivel medio)
+                for (int columna = 0; columna < Tablero.COLUMNAS; columna++) {
+                    if (!tablero.columnaLlena(columna)) {
+                        int fila = tablero.obtenerFilaDisponible(columna);
+
+                        // Colocar temporalmente la ficha del jugador
+                        tablero.colocarFicha(fila, columna, jugadorId);
+
+                        // Verificar si con este movimiento el jugador ganaría
+                        if (tablero.hayGanador(fila, columna)) {
+                            // Restaurar el tablero
+                            tablero.colocarFicha(fila, columna, Tablero.VACIO);
+                            return columna; // Bloquear esta columna
+                        }
+
+                        // Restaurar el tablero
+                        tablero.colocarFicha(fila, columna, Tablero.VACIO);
+                    }
+                }
+
+                // Si no hay que bloquear, intentar crear una jugada de victoria en 2 movimientos
+
+                // Preferir la columna central (estratégicamente mejor)
+                if (!tablero.columnaLlena(Tablero.COLUMNAS / 2)) {
+                    return Tablero.COLUMNAS / 2;
+                }
+
+                // Si no hay nada específico, hacer un movimiento aleatorio
+                columnaSeleccionada = movimientoFacil();
+                break;
+
+            case NIVEL_DEMENCIAL:
+                // Nivel más avanzado con análisis de tablero
+
+                // Priorizar victoria inmediata y bloquear derrotas
+                // (Ya verificado anteriormente)
+
+                // Intentar jugadas estratégicas
+
+                // Preferir columna central
+                if (!tablero.columnaLlena(Tablero.COLUMNAS / 2)) {
+                    return Tablero.COLUMNAS / 2;
+                }
+
+                // Intentar columnas adyacentes al centro
+                if (!tablero.columnaLlena((Tablero.COLUMNAS / 2) - 1)) {
+                    return (Tablero.COLUMNAS / 2) - 1;
+                }
+                if (!tablero.columnaLlena((Tablero.COLUMNAS / 2) + 1)) {
+                    return (Tablero.COLUMNAS / 2) + 1;
+                }
+
+                // Si no hay nada específico, hacer un movimiento aleatorio pero evitando columnas que darían ventaja al oponente
+                columnaSeleccionada = movimientoAvanzado(jugadorId, maquinaId);
+                break;
+
+            default:
+                columnaSeleccionada = movimientoFacil();
+        }
+
+        // Si no se ha seleccionado ninguna columna válida, elegir una aleatoria
+        if (columnaSeleccionada < 0 || columnaSeleccionada >= Tablero.COLUMNAS || tablero.columnaLlena(columnaSeleccionada)) {
+            return movimientoFacil();
+        }
+
+        return columnaSeleccionada;
+    }
+
+    /**
      * Realiza un movimiento de la IA según el nivel de dificultad
      * @param jugadorId ID del jugador (para verificar jugadas)
      * @param maquinaId ID de la máquina
@@ -143,6 +277,77 @@ public class InteligenciaArtificial {
         } while (tablero.columnaLlena(columna));
 
         return columna;
+    }
+
+    /**
+     * Realiza un movimiento más avanzado, evitando columnas que darían ventaja al oponente
+     * @return Columna seleccionada
+     */
+    private int movimientoAvanzado(int jugadorId, int maquinaId) {
+        // Crear una lista con las puntuaciones de cada columna
+        int[] puntuaciones = new int[Tablero.COLUMNAS];
+
+        // Evaluar cada columna
+        for (int columna = 0; columna < Tablero.COLUMNAS; columna++) {
+            if (tablero.columnaLlena(columna)) {
+                puntuaciones[columna] = -1000; // Columna llena, evitar
+                continue;
+            }
+
+            // Calcular puntuación base
+            puntuaciones[columna] = 0;
+
+            // Columnas centrales son mejores
+            int distanciaCentro = Math.abs(columna - Tablero.COLUMNAS/2);
+            puntuaciones[columna] += (Tablero.COLUMNAS/2 - distanciaCentro) * 3;
+
+            // Verificar si esta jugada crea una amenaza para ganar
+            int fila = tablero.obtenerFilaDisponible(columna);
+            tablero.colocarFicha(fila, columna, maquinaId);
+
+            // Buscar amenazas de ganar en el próximo turno
+            for (int col = 0; col < Tablero.COLUMNAS; col++) {
+                if (!tablero.columnaLlena(col)) {
+                    int filaTemp = tablero.obtenerFilaDisponible(col);
+                    tablero.colocarFicha(filaTemp, col, maquinaId);
+
+                    if (tablero.hayGanador(filaTemp, col)) {
+                        puntuaciones[columna] += 10; // Buena jugada, genera amenaza
+                    }
+
+                    // Deshacer
+                    tablero.colocarFicha(filaTemp, col, Tablero.VACIO);
+                }
+            }
+
+            // Deshacer movimiento
+            tablero.colocarFicha(fila, columna, Tablero.VACIO);
+
+            // Verificar si esta jugada permite al oponente ganar
+            tablero.colocarFicha(fila, columna, maquinaId);
+
+            // Si colocamos aquí, ver si el oponente puede colocar arriba y ganar
+            if (fila > 0) {
+                tablero.colocarFicha(fila - 1, columna, jugadorId);
+                if (tablero.hayGanador(fila - 1, columna)) {
+                    puntuaciones[columna] -= 50; // Muy mala jugada, permite al oponente ganar
+                }
+                tablero.colocarFicha(fila - 1, columna, Tablero.VACIO);
+            }
+
+            // Deshacer
+            tablero.colocarFicha(fila, columna, Tablero.VACIO);
+        }
+
+        // Encontrar la columna con mayor puntuación
+        int mejorColumna = 0;
+        for (int col = 0; col < Tablero.COLUMNAS; col++) {
+            if (puntuaciones[col] > puntuaciones[mejorColumna]) {
+                mejorColumna = col;
+            }
+        }
+
+        return mejorColumna;
     }
 
     /**

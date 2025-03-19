@@ -23,7 +23,6 @@ public class TableroView extends Pane {
     // Constantes para el tamaño y apariencia del tablero
     private double tamanoCelda = 80; // Configurable para permitir escalado
     private double tamanoFicha = 65; // Configurable para permitir escalado
-    private static final int VELOCIDAD_ANIMACION = 20;
 
     // Controlador del juego
     private ControladorJuego controlador;
@@ -40,6 +39,18 @@ public class TableroView extends Pane {
     private int columnaAnimacion;
     private double yAnimacion;
     private boolean animando;
+    private boolean esMovimientoIA;
+
+    // Variables para efecto de velocidad de caída
+    private double velocidadActual;
+    private double aceleracion = 0.8; // Ajusta este valor para cambiar la aceleración
+
+    // Variables para almacenar la última jugada de la IA
+    private int ultimaFilaIA = -1;
+    private int ultimaColumnaIA = -1;
+    private boolean mostrarUltimaJugadaIA = false;
+    private Timeline animacionUltimaJugadaIA;
+    private double pulsoBrillo = 0.0;
 
     // Variables para efecto de parpadeo de fichas ganadoras
     private Timeline animacionParpadeo;
@@ -60,6 +71,7 @@ public class TableroView extends Pane {
         // Inicializar variables de animación
         animando = false;
         mostrarFichasGanadoras = true;
+        esMovimientoIA = false;
 
         // Crear canvas
         canvas = new Canvas(Tablero.COLUMNAS * tamanoCelda, Tablero.FILAS * tamanoCelda);
@@ -73,6 +85,75 @@ public class TableroView extends Pane {
         configurarEventosRaton();
 
         // Dibujar tablero inicial
+        dibujarTablero();
+
+        // Configurar animación para resaltar última jugada de la IA
+        configurarAnimacionUltimaJugadaIA();
+    }
+
+    /**
+     * Configura la animación para resaltar última jugada de la IA
+     */
+    private void configurarAnimacionUltimaJugadaIA() {
+        // Timeline para ocultar el resaltado después de un tiempo
+        Timeline ocultarResaltado = new Timeline(
+                new KeyFrame(Duration.seconds(2.5), event -> {
+                    mostrarUltimaJugadaIA = false;
+                    dibujarTablero();
+                })
+        );
+        ocultarResaltado.setCycleCount(1);
+
+        // Timeline para animar el efecto pulsante
+        Timeline animacionPulso = new Timeline(
+                new KeyFrame(Duration.millis(50), event -> {
+                    // Incrementar el pulso para crear un efecto pulsante
+                    pulsoBrillo += 0.15;
+                    if (pulsoBrillo > Math.PI * 2) {
+                        pulsoBrillo = 0;
+                    }
+                    // Redibujar para actualizar el efecto visual si está visible
+                    if (mostrarUltimaJugadaIA) {
+                        dibujarTablero();
+                    }
+                })
+        );
+        animacionPulso.setCycleCount(50); // 50 ciclos de 50ms = 2.5 segundos
+
+        // Guardar referencias a ambas animaciones
+        animacionUltimaJugadaIA = new Timeline();
+        animacionUltimaJugadaIA.getKeyFrames().add(
+                new KeyFrame(Duration.millis(1), event -> {
+                    // Iniciar ambas animaciones
+                    ocultarResaltado.play();
+                    animacionPulso.play();
+                })
+        );
+        animacionUltimaJugadaIA.setCycleCount(1);
+    }
+
+    /**
+     * Establece la posición de la última jugada de la IA para resaltarla
+     * @param fila Fila de la jugada
+     * @param columna Columna de la jugada
+     */
+    public void marcarUltimaJugadaIA(int fila, int columna) {
+        ultimaFilaIA = fila;
+        ultimaColumnaIA = columna;
+        mostrarUltimaJugadaIA = true;
+
+        // Detener animación previa si existe
+        if (animacionUltimaJugadaIA != null) {
+            animacionUltimaJugadaIA.stop();
+        }
+
+        // Iniciar nueva animación
+        animacionUltimaJugadaIA.play();
+
+        // Reiniciar la fase del pulso
+        pulsoBrillo = 0.0;
+
+        // Actualizar tablero para mostrar el resaltado
         dibujarTablero();
     }
 
@@ -173,35 +254,44 @@ public class TableroView extends Pane {
             return;
         }
 
-        // Intentar realizar el movimiento
-        if (controlador.realizarMovimiento(columna)) {
+        // Verificar si la columna está llena
+        if (controlador.getTablero().columnaLlena(columna)) {
+            return;
+        }
+
+        // Encontrar la fila disponible
+        int filaDisponible = controlador.getTablero().obtenerFilaDisponible(columna);
+        if (filaDisponible != -1) {
+            // Iniciar animación de caída de ficha
+            esMovimientoIA = false;
+            iniciarAnimacionCaida(columna, filaDisponible);
+
             // Reproducir sonido de ficha colocada
             try {
                 SistemaAudio.getInstancia().reproducirEfecto("ficha_colocada");
             } catch (Exception ex) {
                 System.err.println("Error al reproducir sonido: " + ex.getMessage());
             }
-
-            // Iniciar animación de caída de ficha
-            int filaDisponible = controlador.getTablero().obtenerFilaDisponible(columna);
-            if (filaDisponible != -1) {
-                columnaAnimacion = columna;
-                filaAnimacion = filaDisponible;
-                iniciarAnimacionCaida(0, filaAnimacion * tamanoCelda + tamanoCelda / 2);
-            } else {
-                // Si no hay animación, actualizar el estado directamente
-                ventanaPrincipal.actualizarEstadoJuego();
-            }
         }
     }
 
     /**
-     * Inicia la animación de caída de una ficha.
-     * @param inicioY Posición Y inicial (normalmente 0)
-     * @param destinoY Posición Y final (donde debe aterrizar la ficha)
+     * Inicia la animación de caída de una ficha en la columna y fila especificadas
+     * @param columna Columna donde caerá la ficha
+     * @param fila Fila donde terminará la ficha
      */
-    private void iniciarAnimacionCaida(double inicioY, double destinoY) {
-        yAnimacion = inicioY;
+    private void iniciarAnimacionCaida(int columna, int fila) {
+        // Guardar posición final
+        columnaAnimacion = columna;
+        filaAnimacion = fila;
+
+        // Posición inicial (arriba del tablero)
+        yAnimacion = 0;
+
+        // Para una caída más realista, añadimos una velocidad inicial y aceleración
+        velocidadActual = 3.0; // Velocidad inicial
+
+        // Marcar que está animando
         animando = true;
 
         // Si existe una animación anterior, detenerla
@@ -209,11 +299,17 @@ public class TableroView extends Pane {
             animacionCaida.stop();
         }
 
+        // Calcular posición final en píxeles
+        double destinoY = filaAnimacion * tamanoCelda + tamanoCelda / 2;
+
         // Crear y arrancar la animación
         animacionCaida = new Timeline(
                 new KeyFrame(Duration.millis(16), event -> {
+                    // Actualizar velocidad con aceleración progresiva (simula gravedad)
+                    velocidadActual += aceleracion;
+
                     // Actualizar posición Y
-                    yAnimacion += VELOCIDAD_ANIMACION;
+                    yAnimacion += velocidadActual;
 
                     // Comprobar si la animación ha terminado
                     if (yAnimacion >= destinoY) {
@@ -223,27 +319,8 @@ public class TableroView extends Pane {
                         animacionCaida.stop();
                         animando = false;
 
-                        // Verificar estado del juego
-                        if (controlador.isJuegoTerminado()) {
-                            // Si hay ganador, iniciar efecto de parpadeo
-                            if (!controlador.isEmpate()) {
-                                iniciarEfectoParpadeo();
-                                try {
-                                    SistemaAudio.getInstancia().reproducirEfecto("victoria");
-                                } catch (Exception e) {
-                                    System.err.println("Error al reproducir sonido de victoria: " + e.getMessage());
-                                }
-                            } else {
-                                try {
-                                    SistemaAudio.getInstancia().reproducirEfecto("empate");
-                                } catch (Exception e) {
-                                    System.err.println("Error al reproducir sonido de empate: " + e.getMessage());
-                                }
-                            }
-                        }
-
-                        // Actualizar el estado del juego en la ventana principal
-                        ventanaPrincipal.actualizarEstadoJuego();
+                        // Ahora que la animación ha terminado, realizar el movimiento en el modelo
+                        realizarMovimientoReal();
                     }
 
                     // Repintar el tablero
@@ -253,6 +330,110 @@ public class TableroView extends Pane {
 
         animacionCaida.setCycleCount(Timeline.INDEFINITE);
         animacionCaida.play();
+    }
+
+    /**
+     * Realiza el movimiento real en el modelo después de que termine la animación visual
+     */
+    private void realizarMovimientoReal() {
+        // Realizar el movimiento en el modelo según quien lo realizó
+        boolean movimientoExitoso;
+        if (esMovimientoIA) {
+            // Para la IA, colocamos directamente la ficha
+            int fila = controlador.getTablero().obtenerFilaDisponible(columnaAnimacion);
+            controlador.getTablero().colocarFicha(fila, columnaAnimacion, controlador.getJugador2().getId());
+
+            // Actualizar variables para controlar el estado del juego
+            ultimaFilaIA = fila;
+            ultimaColumnaIA = columnaAnimacion;
+            mostrarUltimaJugadaIA = true;
+
+            // Iniciar temporizador para desactivar el resaltado
+            if (animacionUltimaJugadaIA != null) {
+                animacionUltimaJugadaIA.stop();
+            }
+            animacionUltimaJugadaIA.play();
+
+            // Verificar si la IA ganó
+            if (controlador.getTablero().hayGanador(fila, columnaAnimacion)) {
+                controlador.setJuegoTerminado(true);
+                controlador.getJugador2().incrementarPuntuacion();
+                iniciarEfectoParpadeo();
+                try {
+                    SistemaAudio.getInstancia().reproducirEfecto("victoria");
+                } catch (Exception e) {
+                    System.err.println("Error al reproducir sonido de victoria: " + e.getMessage());
+                }
+            } else if (controlador.getTablero().tableroLleno()) {
+                // Verificar empate
+                controlador.setJuegoTerminado(true);
+                controlador.setEmpate(true);
+                try {
+                    SistemaAudio.getInstancia().reproducirEfecto("empate");
+                } catch (Exception e) {
+                    System.err.println("Error al reproducir sonido de empate: " + e.getMessage());
+                }
+            } else {
+                // Cambiar turno al jugador humano
+                controlador.cambiarTurno();
+            }
+
+            movimientoExitoso = true;
+        } else {
+            // Para el jugador humano, usamos el método normal
+            movimientoExitoso = controlador.realizarMovimiento(columnaAnimacion);
+
+            // Si hay ganador, iniciar efecto de parpadeo
+            if (movimientoExitoso && controlador.isJuegoTerminado()) {
+                if (!controlador.isEmpate()) {
+                    iniciarEfectoParpadeo();
+                    try {
+                        SistemaAudio.getInstancia().reproducirEfecto("victoria");
+                    } catch (Exception e) {
+                        System.err.println("Error al reproducir sonido de victoria: " + e.getMessage());
+                    }
+                } else {
+                    try {
+                        SistemaAudio.getInstancia().reproducirEfecto("empate");
+                    } catch (Exception e) {
+                        System.err.println("Error al reproducir sonido de empate: " + e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // Actualizar el estado del juego en la ventana principal
+        if (movimientoExitoso) {
+            ventanaPrincipal.actualizarEstadoJuego();
+        }
+    }
+
+    /**
+     * Inicia la animación de caída para la ficha de la IA
+     * @param columna Columna donde se colocará la ficha
+     */
+    public void iniciarAnimacionCaidaIA(int columna) {
+        // Verificar si la columna es válida y no está llena
+        if (columna < 0 || columna >= Tablero.COLUMNAS || controlador.getTablero().columnaLlena(columna)) {
+            return;
+        }
+
+        // Encontrar la fila disponible
+        int filaDisponible = controlador.getTablero().obtenerFilaDisponible(columna);
+        if (filaDisponible != -1) {
+            // Marcar que este es un movimiento de la IA
+            esMovimientoIA = true;
+
+            // Iniciar animación de caída
+            iniciarAnimacionCaida(columna, filaDisponible);
+
+            // Reproducir sonido de ficha colocada
+            try {
+                SistemaAudio.getInstancia().reproducirEfecto("ficha_colocada");
+            } catch (Exception ex) {
+                System.err.println("Error al reproducir sonido: " + ex.getMessage());
+            }
+        }
     }
 
     /**
@@ -290,7 +471,12 @@ public class TableroView extends Pane {
             animacionParpadeo.stop();
         }
 
+        if (animacionUltimaJugadaIA != null) {
+            animacionUltimaJugadaIA.stop();
+        }
+
         animando = false;
+        mostrarUltimaJugadaIA = false;
     }
 
     /**
@@ -371,6 +557,9 @@ public class TableroView extends Pane {
                     // Aplicar efecto de sombra
                     gc.setEffect(dropShadow);
 
+                    // Verificar si es la última jugada de la IA para resaltarla
+                    boolean esUltimaJugadaIA = mostrarUltimaJugadaIA && fila == ultimaFilaIA && col == ultimaColumnaIA;
+
                     // Dibujar ficha si existe en esta celda
                     if (valorCelda == Tablero.JUGADOR_1) {
                         gc.setFill(convertirAwtColorAJavaFX(controlador.getJugador1().getColor()));
@@ -380,12 +569,40 @@ public class TableroView extends Pane {
                         gc.setFill(Color.color(1, 1, 1, 0.3));
                         gc.fillOval(x - tamanoFicha/4, y - tamanoFicha/3, tamanoFicha/4, tamanoFicha/4);
                     } else if (valorCelda == Tablero.JUGADOR_2) {
-                        gc.setFill(convertirAwtColorAJavaFX(controlador.getJugador2().getColor()));
+                        Color colorFicha = convertirAwtColorAJavaFX(controlador.getJugador2().getColor());
+                        gc.setFill(colorFicha);
                         gc.fillOval(x - tamanoFicha/2, y - tamanoFicha/2, tamanoFicha, tamanoFicha);
 
                         // Agregar brillo a la ficha
                         gc.setFill(Color.color(1, 1, 1, 0.3));
                         gc.fillOval(x - tamanoFicha/4, y - tamanoFicha/3, tamanoFicha/4, tamanoFicha/4);
+
+                        // Si es la última jugada de la IA, añadir un resaltado adicional
+                        if (esUltimaJugadaIA) {
+                            // Calcular factor de pulso (entre 0.4 y 1.0)
+                            double factorPulso = 0.4 + 0.6 * Math.abs(Math.sin(pulsoBrillo));
+
+                            // Dibujar un círculo exterior de destello
+                            gc.setGlobalAlpha(0.7 * factorPulso);
+                            gc.setFill(Color.WHITE);
+                            double tamanoExterior = tamanoFicha * (1.2 + 0.2 * factorPulso);
+                            gc.fillOval(x - tamanoExterior/2, y - tamanoExterior/2, tamanoExterior, tamanoExterior);
+
+                            // Dibujar un borde de color brillante
+                            gc.setGlobalAlpha(1.0);
+                            gc.setStroke(Color.YELLOW);
+                            gc.setLineWidth(3 + factorPulso * 2);
+                            gc.strokeOval(x - tamanoFicha/2 - 3, y - tamanoFicha/2 - 3, tamanoFicha + 6, tamanoFicha + 6);
+
+                            // Añadir un efecto de brillo interno
+                            gc.setGlobalAlpha(0.3 + 0.3 * factorPulso);
+                            gc.setFill(Color.WHITE);
+                            double tamanoInterior = tamanoFicha * 0.6 * factorPulso;
+                            gc.fillOval(x - tamanoInterior/2, y - tamanoInterior/2, tamanoInterior, tamanoInterior);
+
+                            // Restaurar opacidad normal
+                            gc.setGlobalAlpha(1.0);
+                        }
                     }
 
                     // Quitar efecto de sombra
@@ -397,11 +614,13 @@ public class TableroView extends Pane {
             if (animando) {
                 double x = columnaAnimacion * tamanoCelda + tamanoCelda / 2;
 
-                // Obtener el jugador anterior (el que acaba de colocar la ficha)
-                boolean eraTurnoJugador1 = controlador.getJugadorActual() == controlador.getJugador2();
-                Color colorFicha = eraTurnoJugador1 ?
-                        convertirAwtColorAJavaFX(controlador.getJugador1().getColor()) :
-                        convertirAwtColorAJavaFX(controlador.getJugador2().getColor());
+                // Obtener el jugador que está colocando la ficha
+                Color colorFicha;
+                if (esMovimientoIA) {
+                    colorFicha = convertirAwtColorAJavaFX(controlador.getJugador2().getColor());
+                } else {
+                    colorFicha = convertirAwtColorAJavaFX(controlador.getJugadorActual().getColor());
+                }
 
                 // Aplicar efecto de sombra
                 gc.setEffect(dropShadow);
