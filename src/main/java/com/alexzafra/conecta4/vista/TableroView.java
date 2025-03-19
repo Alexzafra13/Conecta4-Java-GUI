@@ -43,7 +43,7 @@ public class TableroView extends Pane {
 
     // Variables para efecto de velocidad de caída
     private double velocidadActual;
-    private double aceleracion = 0.8; // Ajusta este valor para cambiar la aceleración
+    private double aceleracion = 2.0; // Ajusta este valor para cambiar la aceleración
 
     // Variables para almacenar la última jugada de la IA
     private int ultimaFilaIA = -1;
@@ -97,7 +97,7 @@ public class TableroView extends Pane {
     private void configurarAnimacionUltimaJugadaIA() {
         // Timeline para ocultar el resaltado después de un tiempo
         Timeline ocultarResaltado = new Timeline(
-                new KeyFrame(Duration.seconds(2.5), event -> {
+                new KeyFrame(Duration.seconds(0.8), event -> { // Reducido de 1.2 a 0.8 segundos
                     mostrarUltimaJugadaIA = false;
                     dibujarTablero();
                 })
@@ -118,7 +118,7 @@ public class TableroView extends Pane {
                     }
                 })
         );
-        animacionPulso.setCycleCount(50); // 50 ciclos de 50ms = 2.5 segundos
+        animacionPulso.setCycleCount(16); // Reducido de 24 a 16 ciclos (aprox. 0.8 segundos)
 
         // Guardar referencias a ambas animaciones
         animacionUltimaJugadaIA = new Timeline();
@@ -288,8 +288,11 @@ public class TableroView extends Pane {
         // Posición inicial (arriba del tablero)
         yAnimacion = 0;
 
-        // Para una caída más realista, añadimos una velocidad inicial y aceleración
-        velocidadActual = 3.0; // Velocidad inicial
+        // Aumentar la velocidad inicial y la aceleración para una caída más rápida
+        velocidadActual = 8.0; // Velocidad inicial (aumentada a 8.0)
+
+        // Aumentar la aceleración para que caiga más rápido
+        aceleracion = 2.0;     // Aceleración (aumentada a 2.0)
 
         // Marcar que está animando
         animando = true;
@@ -449,7 +452,7 @@ public class TableroView extends Pane {
 
         // Crear y arrancar la animación de parpadeo
         animacionParpadeo = new Timeline(
-                new KeyFrame(Duration.millis(400), event -> {
+                new KeyFrame(Duration.millis(300), event -> { // Reducido de 400 a 300 milisegundos
                     mostrarFichasGanadoras = !mostrarFichasGanadoras;
                     dibujarTablero();
                 })

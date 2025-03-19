@@ -120,7 +120,7 @@ public class VentanaPrincipal extends BorderPane {
         panelSur.getChildren().addAll(barraEstado, panelBotones);
 
         // Configurar la pausa para el movimiento de la máquina
-        pausaMovimientoMaquina = new PauseTransition(Duration.millis(800));
+        pausaMovimientoMaquina = new PauseTransition(Duration.millis(500)); // Reducido de 800 a 500 milisegundos
         pausaMovimientoMaquina.setOnFinished(event -> {
             // Calcular el movimiento de la IA sin aplicarlo aún
             columnaSeleccionadaIA = obtenerColumnaMovimientoIA();
